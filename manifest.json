@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Always New Tab",
+  "description": "Always open new new tab if old got ocupied.",
+  "version": "1.0",
+  "permissions":
+  [
+    "tabs",
+	"storage",
+	"nativeMessaging"
+  ],
+  "action":
+  {
+    "default_popup": "popup/popup.html",
+    "default_icon": "images/NoTexture128.png"
+  },
+  "icons":
+  {
+    "128": "images/NoTexture128.png",
+    "96": "images/NoTexture96.png",
+    "64": "images/NoTexture64.png",
+    "32": "images/NoTexture32.png",
+    "16": "images/NoTexture16.png"
+  },
+  "background":
+  {
+    "service_worker": "scripts/background.js"
+  }
+}
