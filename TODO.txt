@@ -1,3 +1,9 @@
 1. Bug when new window opens (infinite new tabs) - done
 2. Close unnecesary new tabs - done
 3. Cool looking icon???
+4. Do not close new tabs from other groups
+5. Cool looking settings menu
+6. Better system to check for url change - done
+7. Check on extention reload
+8. Check when moving tab from one window to another
+9. Move tab when it is moved by user
