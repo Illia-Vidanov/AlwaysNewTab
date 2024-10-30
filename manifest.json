@@ -6,8 +6,9 @@
   "permissions":
   [
     "tabs",
-	"storage",
-	"nativeMessaging"
+	  "storage",
+	  "nativeMessaging",
+    "tabGroups"
   ],
   "action":
   {

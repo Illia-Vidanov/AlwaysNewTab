@@ -7,3 +7,4 @@
 7. Check on extention reload
 8. Check when moving tab from one window to another
 9. Move tab when it is moved by user
+10. Polute groups - done
