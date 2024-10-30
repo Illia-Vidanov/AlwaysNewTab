@@ -35,19 +35,19 @@ function()
   });
   
   
-  chrome.storage.sync.get("enabled", function(data){
+  chrome.storage.sync.get({"enabled": true}, function(data){
     enabled.checked = data.enabled;
   });
   
-  chrome.storage.sync.get("move", function(data){
+  chrome.storage.sync.get({"move": true}, function(data){
     move.checked = data.move;
   });
   
-  chrome.storage.sync.get("close", function(data){
+  chrome.storage.sync.get({"close": true}, function(data){
     close.checked = data.close;
   });
   
-  chrome.storage.sync.get("group", function(data){
+  chrome.storage.sync.get({"group": true}, function(data){
     group.checked = data.group;
   });
   

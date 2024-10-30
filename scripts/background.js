@@ -1,3 +1,5 @@
+Check();
+
 // Check if tab was removed
 chrome.tabs.onRemoved.addListener(OnRemoved);
 function OnRemoved(tabId, removeInfo)
@@ -22,7 +24,7 @@ function(request, sender, sendResponse)
 
 function Check()
 {
-  chrome.storage.sync.get("enabled", function(data){
+  chrome.storage.sync.get({"enabled": true}, function(data){
     if(!data.enabled)
       return;
     
@@ -34,7 +36,7 @@ function Check()
         if(tab.url == "chrome://newtab/" && !tab.pinned)
         {
           // Move new tabs forward
-          chrome.storage.sync.get("move", function(data){
+          chrome.storage.sync.get({"move": true}, function(data){
             if(data.move)
               chrome.tabs.move(tab.id, { index: -1 });
           });
@@ -42,7 +44,7 @@ function Check()
           // Close if it's not first new tab
           if(found)
           {
-            chrome.storage.sync.get("close", function(data){
+            chrome.storage.sync.get({"close": true}, function(data){
               if(data.close)
                 chrome.tabs.remove(tab.id);  
             });
@@ -58,7 +60,7 @@ function Check()
     
     
     // Group check
-    chrome.storage.sync.get("group", function(data){
+    chrome.storage.sync.get({"group": true}, function(data){
       if(!data.group)
         return;
       
@@ -75,7 +77,7 @@ function Check()
               if(tab.url == "chrome://newtab/")
               {
                 // Move new tabs forward
-                chrome.storage.sync.get("move", function(data){
+                chrome.storage.sync.get({"move": true}, function(data){
                   // Check for amount of tabs to avoid moving the group
                   if(data.move && tabs.length > 2)
                   {
@@ -87,7 +89,7 @@ function Check()
                 // Close if it's not first new tab
                 if(found)
                 {
-                  chrome.storage.sync.get("close", function(data){
+                  chrome.storage.sync.get({"close": true}, function(data){
                     if(data.close)
                       chrome.tabs.remove(tab.id);  
                   });
