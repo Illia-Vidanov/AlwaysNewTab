@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Always New Tab",
-  "description": "Always open new new tab if old got ocupied.",
-  "version": "1.0",
+  "name": "Always New Tab (ANT)",
+  "description": "New Tab should always be oppened, so this extension opens it for you! Also it can move tab to the front, close excessive and even have separate New Tabs in different tab groups!",
+  "version": "1.4",
   "permissions":
   [
     "tabs",
@@ -13,15 +13,15 @@
   "action":
   {
     "default_popup": "popup/popup.html",
-    "default_icon": "images/NoTexture128.png"
+    "default_icon": "images/Cover128.png"
   },
   "icons":
   {
-    "128": "images/NoTexture128.png",
-    "96": "images/NoTexture96.png",
-    "64": "images/NoTexture64.png",
-    "32": "images/NoTexture32.png",
-    "16": "images/NoTexture16.png"
+    "128": "images/Cover/Cover128.png",
+    "96": "images/Cover/Cover96.png",
+    "64": "images/Cover/Cover64.png",
+    "32": "images/Cover/Cover32.png",
+    "16": "images/Cover/Cover16.png"
   },
   "background":
   {
