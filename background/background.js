@@ -1,14 +1,17 @@
 import { GetStorageChache, SwapArrayElements, enum_value } from "../scripts/common.js"
 
 const NEW_TAB_URL = Object.freeze("chrome://newtab/");
+// Used to track active tab so when it is being closed by the user and it was the only new tab, we could open new and make it active instead of other tab
 let active_tab = -1;
-let is_moving = false;
+// Used to indicate that there is an error occured in the process of creating tab and that there is no need to start new process because old one is not finished
 let is_creating = false;
-let is_detached = false;
-let is_attached = false;
+let is_creating_in_group = false;
+// As is_creating used to not start new actions where the old one couldn't take place because of an error
+let is_moving = false;
+// Amount of actions of move should be ignored because we were the cause oof them. Used to reduce amount of checks. Might be buggy when a lot of actions happen at the same time with other extensions
 let ignore_moved = 0;
+// As ignore_moved used to decrease amount of useless checks
 let ignore_removed = 0;
-let last_created_tabs = new Map();
 
 // Change active tab when active is changed
 chrome.tabs.onActivated.addListener((activeInfo) => {
@@ -59,15 +62,18 @@ chrome.tabs.onCreated.addListener((tab) => {
 // Check if tab was attached
 chrome.tabs.onAttached.addListener((tab_id, attach_info) => {
   console.log("Check attached");
-  is_attached = true;
   Check(attach_info.newWindowId);
 });
 
 // Check if tab was detached
-chrome.tabs.onDetached.addListener(async (tab_id, detach_info) => {
+chrome.tabs.onDetached.addListener((tab_id, detach_info) => {
   console.log("Check detached");
-  is_detached = true;
   Check(detach_info.oldWindowId);
+});
+
+// Check if tab group was opened
+chrome.tabGroups.onUpdated.addListener((group) => {
+  console.log("Group updateted");
 });
 
 // Update on extension load
@@ -180,7 +186,7 @@ async function Check(win_id, removed_active){
         }
       }
 
-      if(!found && !is_moving && !is_creating)
+      if(!found && !is_moving && !is_creating_in_group)
       {
         await CreateNewTabInGroup(win_id, group.id, (new_tab) => {
           if(removed_active)
@@ -193,13 +199,6 @@ async function Check(win_id, removed_active){
 
 async function MoveTab(tab, window_id){
   console.log("Move tab");
-
-  //if(is_detached)
-  //{
-  //  is_detached = false;
-  //  is_moving = false;
-  //  return;
-  //}
 
   is_moving = true;
     
@@ -215,12 +214,6 @@ async function MoveTab(tab, window_id){
 
 async function MoveTabInGroup(tab, window_id, group_id){
   console.log("Move tab");
-
-  //if(is_detached){
-  //  is_detached = false;
-  //  is_moving = false;
-  //  return;
-  //}
   
   is_moving = true;
 
@@ -238,15 +231,7 @@ async function MoveTabInGroup(tab, window_id, group_id){
 async function RemoveTab(tab){
   console.log("Remove tab");
 
-  //if(is_attached){
-  //  is_attached = false;
-  //  return;
-  //}
-//
-  //if(is_detached){
-  //  is_detached = false;
-  //  return;
-  //}
+  ignore_removed++;
 
   await chrome.tabs.remove(tab.id, () => { if(chrome.runtime.lastError) return; });
 }
@@ -255,22 +240,21 @@ async function CreateNewTab(window_id, callback)
 {
   console.log("Create tab");
 
-  //if(is_attached){
-  //  is_attached = false;
-  //  return;
-  //}
-
   is_creating = true;
   
   chrome.tabs.create({url: NEW_TAB_URL, active: false, windowId: window_id}, (new_tab) => {
     if(chrome.runtime.lastError){
+      if(chrome.runtime.lastError.message.startsWith("No window with id"))
+      {
+        is_creating = false;
+        return;
+      }
+      
       setTimeout(() => CreateNewTab(window_id, callback), 100);
       return;
     }
 
     is_creating = false;
-
-    last_created_tabs.set(chrome.tabGroups.TAB_GROUP_ID_NONE, new_tab.id);
 
     callback(new_tab);
   });
@@ -278,14 +262,9 @@ async function CreateNewTab(window_id, callback)
 
 async function CreateNewTabInGroup(window_id, group_id, callback)
 {
-  console.log("Create tab");
+  console.log("Create tab in group");
 
-  //if(is_attached){
-  //  is_attached = false;
-  //  return;
-  //}
-
-  is_creating = true;
+  is_creating_in_group = true;
 
   chrome.tabs.create({url: NEW_TAB_URL, active: false, windowId: window_id}, async (new_tab) => {
     if(chrome.runtime.lastError){
@@ -296,9 +275,7 @@ async function CreateNewTabInGroup(window_id, group_id, callback)
     await chrome.tabs.group({tabIds: new_tab.id, groupId: group_id});
     ignore_moved++;
 
-    is_creating = false;
-
-    last_created_tabs.set(group_id, new_tab.id);
+    is_creating_in_group = false;
 
     callback(new_tab);
   });

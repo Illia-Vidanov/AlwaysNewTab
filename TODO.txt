@@ -18,6 +18,7 @@
 18. Bug, 'close' option doesn't work - done
 19. Better storage retrieve - done
 20. Test groups - done
-21. Move directions to left/to right
+21. Move directions to left/to right - 
 22. Make delay after creating tab to avoid unloaded pages counted as non newpage - done
-23. Update after adding tab to a group
+23. Update after adding tab to a group - done
+24. Focus on new tab when moved it from the group. - probably won't implement
