@@ -2,7 +2,8 @@
   "manifest_version": 3,
   "name": "Always New Tab (ANT)",
   "description": "New Tab should always be oppened, so this extension opens it for you! Also it can move tab to the front, close excessive and even have separate New Tabs in different tab groups!",
-  "version": "1.4",
+  "version": "1.5",
+  "minimum_chrome_version": "93",
   "permissions":
   [
     "tabs",
@@ -17,14 +18,15 @@
   },
   "icons":
   {
-    "128": "images/Cover/Cover128.png",
-    "96": "images/Cover/Cover96.png",
-    "64": "images/Cover/Cover64.png",
-    "32": "images/Cover/Cover32.png",
-    "16": "images/Cover/Cover16.png"
+    "128": "images/Cover128.png",
+    "96": "images/Cover96.png",
+    "64": "images/Cover64.png",
+    "32": "images/Cover32.png",
+    "16": "images/Cover16.png"
   },
   "background":
   {
-    "service_worker": "scripts/background.js"
+    "service_worker": "background/background.js",
+    "type": "module"
   }
 }

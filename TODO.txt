@@ -1,6 +1,6 @@
 1. Bug when new window opens (infinite new tabs) - done
 2. Close unnecesary new tabs - done
-3. Cool looking icon??? - 
+3. Cool looking icon??? - done
 4. Do not close new tabs from other groups - done
 5. Cool looking settings menu - 
 6. Better system to check for url change - done
@@ -11,3 +11,13 @@
 11. Default values - done
 12. Multiple window support - done
 13. Refactor (again) - done
+14. Don't move groups if one tab opened - done
+15. Test groups - done
+16. Fix options - 
+17. Option to not open new tab - 
+18. Bug, 'close' option doesn't work - done
+19. Better storage retrieve - done
+20. Test groups - done
+21. Move directions to left/to right
+22. Make delay after creating tab to avoid unloaded pages counted as non newpage - done
+23. Update after adding tab to a group

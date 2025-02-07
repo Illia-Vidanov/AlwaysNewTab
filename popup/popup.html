@@ -1,19 +1,44 @@
 <html>
 	<head>
-		<script src="popup.js"></script>
+		<script type="module" src="popup.js"></script>
 		<link rel="stylesheet" href="popup.css">
 	</head>
 	
 	<body>
-		<div class="checkbox-wrapper-1">
-			<input id="enabled" class="substituted" type="checkbox" checked="checked" aria-hidden="true" />
-			<label for="enabled">Enabled</label>
-			<input id="move" class="substituted" type="checkbox" checked="checked" aria-hidden="true" />
-			<label for="move">Move Tabs</label>
-			<input id="close" class="substituted" type="checkbox" checked="checked" aria-hidden="true" />
-			<label for="close">Close Excessive</label>
-			<input id="group" class="substituted" type="checkbox" checked="checked" aria-hidden="true" />
-			<label for="group">Polute Groups</label>
-		</div>
+    <div class="top_part">
+      <img class="top_image" src="images/Top.png">
+      <div class="top_image_overlay"></div>
+
+      <div id="enable" class="enable_button">
+        <input type="image" src="images/Button.png" alt="Button">
+        <div class="enable_button_overlay"></div>
+      </div>
+
+      <lable id="enable_lable" class="enable_button_lable">Not Working!</lable>
+    </div>
+
+
+    <div class="bottom_part">
+      <img class="bottom_image" src="images/Bottom.png">
+      <div class="bottom_image_overlay"></div>
+      <table class="options">
+        <tr>
+          <td><label for="open" class="option_lable">Open New Tab</label></td>
+          <td><input id="open" type="checkbox" class="option_checkbox" /></td>
+        </tr>
+        <tr>
+          <td><label for="move" class="option_lable">Move Tabs</label></td>
+          <td><input id="move" type="checkbox" class="option_checkbox" /></td>
+        </tr>
+        <tr>
+          <td><label for="close" class="option_lable">Close Excessive</label></td>
+          <td><input id="close" type="checkbox" class="option_checkbox" /></td>
+        </tr>
+        <tr>
+          <td><label for="group" class="option_lable">Polute Groups</label></td>
+          <td><input id="group" type="checkbox" class="option_checkbox" /></td>
+        </tr>
+      </table>
+    </div>
 	</body>
 </html>
