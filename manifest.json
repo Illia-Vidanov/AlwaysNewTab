@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Always New Tab (ANT)",
-  "description": "New Tab should always be oppened, so this extension opens it for you! Also it can move tab to the front, close excessive and even have separate New Tabs in different tab groups!",
+  "description": "Very small chrome extension that always opens fresh New Tab, if the old one was closed, moved, draged to another window. Also the extension closes excessive tabs and polutes and arranges New Tabs in Tab Groups if needed.",
   "version": "1.5",
   "minimum_chrome_version": "93",
   "permissions":
