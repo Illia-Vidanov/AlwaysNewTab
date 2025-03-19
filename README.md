@@ -6,6 +6,5 @@ TODO:
 - [ ] Good-looking popup...
 - [x] Tab Groups support
 - [x] Multi-window support
-- [ ] Add opption to move tabs to the left end instead of the right one
-- [ ] Focus on new tab when it was moved from the group
+- [x] Add opption to move tabs to the left end instead of the right one
 - [ ] Get extension to extension the store)
