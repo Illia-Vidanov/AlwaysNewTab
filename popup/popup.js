@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let move = document.getElementById("move");
   let close = document.getElementById("close");
   let group = document.getElementById("group");
+  let move_dir = document.getElementById("move_dir");
   let enable = document.getElementById("enable");
   
   AddEvent(move, "change", () => {
@@ -38,6 +39,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     chrome.runtime.sendMessage({msg: "Check"});
     chrome.storage.sync.set(storage_cache);
   });
+
+  AddEvent(move_dir, "change", () => {
+    storage_cache.move_dir = move_dir.value;
+    //console.log(storage_cache.move_dir);
+    chrome.runtime.sendMessage({msg: "Check"});
+    chrome.storage.sync.set(storage_cache);
+  });
   
   AddEvent(enable, "click", () => {
     storage_cache.enabled = !storage_cache.enabled;
@@ -50,8 +58,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   move.checked = storage_cache.move;
   close.checked = storage_cache.close;
   group.checked = storage_cache.group;
+  move_dir.value = storage_cache.move_dir;
 
-  console.log(storage_cache.enabled);
   SetPopupState(storage_cache.enabled);
 });
 

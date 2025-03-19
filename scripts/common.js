@@ -4,20 +4,21 @@ async function GetStorageChache()
     let storage_cache = {};
     try {
       storage_cache = await chrome.storage.sync.get({
-        // Defaults do not forget to change them in popup.html too!!!
         "enabled": true,
         "open": true,
         "move": true,
         "close": true,
-        "group": false
+        "group": false,
+        "move_dir": "right"
       });
 
       //console.log("utils.js\n",
-      //  "Enabled: ", storage_cache.enabled, '\n',
-      //  "Group: ",   storage_cache.group,   '\n',
-      //  "Move: ",    storage_cache.move,    '\n',
-      //  "Close: ",   storage_cache.close,   '\n',
-      //  "Open: ",    storage_cache.open);
+      //  "Enabled: ",  storage_cache.enabled,  '\n',
+      //  "Move Dir: ", storage_cache.move_dir, '\n',
+      //  "Group: ",    storage_cache.group,    '\n',
+      //  "Move: ",     storage_cache.move,     '\n',
+      //  "Close: ",    storage_cache.close,    '\n',
+      //  "Open: ",     storage_cache.open);
 
       resolve(storage_cache);
     } catch (error) {

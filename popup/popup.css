@@ -181,11 +181,24 @@ html {
   transition: 0.05s ease;
 }
 
+.option_select {
+  position: relative;
+  left: 50px;
+  background-color: #A3C7FA;
+
+  transition: 0.15s ease;
+}
+
+.option_select:active {
+  filter: brightness(110%);
+  transition: 0.05s ease;
+}
+
 .option_lable {
   position: relative;
   left: 10px;
 
   font-size: 18px;
-  line-height: 2.5;
-  filter: invert(40%);
+  line-height: 2;
+  filter: invert(50%);
 }

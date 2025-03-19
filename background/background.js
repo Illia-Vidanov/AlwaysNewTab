@@ -8,6 +8,10 @@ let is_creating = false;
 let is_creating_in_group = false;
 // As is_creating used to not start new actions where the old one couldn't take place because of an error
 let is_moving = false;
+// To avoid moving tab from one window to another
+let stop_move = false;
+// Ame principle as is_moving
+let is_removing = false;
 // Amount of actions of move should be ignored because we were the cause oof them. Used to reduce amount of checks. Might be buggy when a lot of actions happen at the same time with other extensions
 let ignore_moved = 0;
 // As ignore_moved used to decrease amount of useless checks
@@ -26,7 +30,7 @@ chrome.tabs.onRemoved.addListener((tab_id, removeInfo) => {
     return;
   }
 
-  console.log("Check remove");
+  //console.log("Check remove");
   Check(removeInfo.windowId, tab_id == active_tab);
 });
 
@@ -34,7 +38,7 @@ chrome.tabs.onRemoved.addListener((tab_id, removeInfo) => {
 chrome.tabs.onUpdated.addListener((tab_id, change_info, tab) => {
   if(change_info.url && tab.active)
   {
-    console.log("Check url change");
+    //console.log("Check url change");
     Check(tab.windowId);
   }
 });
@@ -49,44 +53,46 @@ chrome.tabs.onMoved.addListener((tab_id, move_info) => {
     return;
   }
 
-  console.log("Check moved");
+  //console.log("Check moved");
   Check(move_info.windowId);
 });
 
 // Check if new tab is created
 chrome.tabs.onCreated.addListener((tab) => {
-  console.log("Check created");
+  //console.log("Check created");
   Check(tab.windowId);
 });
 
 // Check if tab was attached
 chrome.tabs.onAttached.addListener((tab_id, attach_info) => {
-  console.log("Check attached");
+  //console.log("Check attached");
   Check(attach_info.newWindowId);
 });
 
 // Check if tab was detached
 chrome.tabs.onDetached.addListener((tab_id, detach_info) => {
-  console.log("Check detached");
+  //console.log("Check detached");
+  if(is_moving)
+    stop_move = true;
   Check(detach_info.oldWindowId);
 });
 
 // Check if tab group was opened
 chrome.tabGroups.onUpdated.addListener((group) => {
-  console.log("Group updateted");
+  //console.log("Group updateted");
 });
 
 // Update on extension load
 async function CheckCurrentWindow(){
   // Wrote this way because chrome API is very limiting when it comes to popups
-  console.log("Check current window")
+  //console.log("Check current window")
   Check((await chrome.tabs.query({active: true}))[0].windowId);
 }
 CheckCurrentWindow();
 
 // Popup refresh message
 chrome.runtime.onMessage.addListener((request, sender, send_response) => {
-  console.log("Check message");
+  //console.log("Check message");
   if(request.msg == "Check")
     CheckCurrentWindow();
 });
@@ -114,7 +120,8 @@ async function Check(win_id, removed_active){
   if(!storage_cache || !storage_cache.enabled)
     return;
 
-  const tab_count = (await chrome.tabs.query({windowId: win_id})).length;
+  const move_right = storage_cache.move_dir == "right";
+  const goal_index = move_right ? ((await chrome.tabs.query({windowId: win_id})).length - 1) : ((await chrome.tabs.query({windowId: win_id, pinned: true})).length);
 
   // Normal check
   {
@@ -128,14 +135,14 @@ async function Check(win_id, removed_active){
 
     for(const tab of tabs){
       if((tab.url == NEW_TAB_URL || tab.pendingUrl == NEW_TAB_URL) && !tab.pinned){
-        if(storage_cache.close && found)
+        if(storage_cache.close && found && !is_removing)
         {
           await RemoveTab(tab);
           continue;
         }
         
-        if(storage_cache.move && !found && tab.index != (tab_count - 1))
-          await MoveTab(tab, win_id);
+        if(storage_cache.move && !found && tab.index != goal_index && !is_moving)
+          await MoveTab(tab, goal_index, win_id);
     
         found = true;
       }
@@ -162,9 +169,19 @@ async function Check(win_id, removed_active){
       if(active_tab_index != -1)
         SwapArrayElements(tabs, 0, active_tab_index);
       
-      let last_tab_index = tabs[0].index;
-      for(const tab of tabs){
-        last_tab_index = Math.max(tab.index, last_tab_index);
+      let group_goal_index = tabs[0].index;
+
+      if(move_right)
+      {
+        for(const tab of tabs){
+          group_goal_index = Math.max(tab.index, group_goal_index);
+        }
+      }
+      else
+      {
+        for(const tab of tabs){
+          group_goal_index = Math.min(tab.index, group_goal_index);
+        }
       }
       
       let found = false;
@@ -172,15 +189,14 @@ async function Check(win_id, removed_active){
       for(const tab of tabs){
 
         if(tab.url == NEW_TAB_URL || tab.pendingUrl == NEW_TAB_URL){
-          if(storage_cache.close && found)
+          if(storage_cache.close && found && !is_removing)
           {
             await RemoveTab(tab);
             continue;
           }
 
-          // Check for amount of tabs to avoid moving the group
-          if(storage_cache.move && !found && tab.index != last_tab_index)
-            await MoveTabInGroup(tab, win_id, group.id);
+          if(storage_cache.move && !found && tab.index != group_goal_index)
+            await MoveTabInGroup(tab, group_goal_index, group.id, win_id);
           
           found = true;
         }
@@ -197,14 +213,21 @@ async function Check(win_id, removed_active){
   }
 }
 
-async function MoveTab(tab, window_id){
-  console.log("Move tab");
+async function MoveTab(tab, goal_index, window_id){
+  if(stop_move)
+  {
+    stop_move = false;
+    is_moving = false; 
+    return;
+  }
+
+  //console.log("Move tab");
 
   is_moving = true;
     
-  chrome.tabs.move(tab.id, {index: -1, windowId: window_id}, () => {
+  chrome.tabs.move(tab.id, {index: goal_index, windowId: window_id}, () => {
     if(chrome.runtime.lastError){
-      setTimeout(() => MoveTab(tab, window_id), 100);
+      setTimeout(() => MoveTab(tab, goal_index, window_id), 100);
       return;
     }
 
@@ -212,33 +235,48 @@ async function MoveTab(tab, window_id){
   });
 }
 
-async function MoveTabInGroup(tab, window_id, group_id){
-  console.log("Move tab");
+async function MoveTabInGroup(tab, group_goal_index, group_id, window_id){
+  if(stop_move)
+  {
+    stop_move = false;
+    is_moving = false; 
+    return;
+  }
+  
+  //console.log("Move tab in group");
   
   is_moving = true;
 
-  chrome.tabs.move(tab.id, {index: -1, windowId: window_id}, async () => {
+  chrome.tabs.move(tab.id, {index: group_goal_index, windowId: window_id}, () => {
     if(chrome.runtime.lastError){
-      setTimeout(() => MoveTabInGroup(tab, window_id, group_id), 100);
+      setTimeout(() => MoveTabInGroup(tab, group_goal_index, group_id, window_id), 100);
       return;
     }
-    await chrome.tabs.group({tabIds: tab.id, groupId: group_id});
+    chrome.tabs.group({tabIds: tab.id, groupId: group_id});
     ignore_moved++;
     is_moving = false;
   });
 }
 
 async function RemoveTab(tab){
-  console.log("Remove tab");
+  //console.log("Remove tab");
 
-  ignore_removed++;
+  is_removing = true;
 
-  await chrome.tabs.remove(tab.id, () => { if(chrome.runtime.lastError) return; });
+  await chrome.tabs.remove(tab.id, () => {
+    if(chrome.runtime.lastError){
+      setTimeout(() => RemoveTab(tab), 100);
+      return;
+    }
+  
+    ignore_removed++;
+    is_removing = false;
+  });
 }
 
 async function CreateNewTab(window_id, callback)
 {
-  console.log("Create tab");
+  //console.log("Create tab");
 
   is_creating = true;
   
@@ -262,7 +300,7 @@ async function CreateNewTab(window_id, callback)
 
 async function CreateNewTabInGroup(window_id, group_id, callback)
 {
-  console.log("Create tab in group");
+  //console.log("Create tab in group");
 
   is_creating_in_group = true;
 
