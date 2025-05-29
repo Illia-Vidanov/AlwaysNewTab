@@ -6,16 +6,18 @@ let active_tab = -1;
 // Used to indicate that there is an error occured in the process of creating tab and that there is no need to start new process because old one is not finished
 let is_creating = false;
 let is_creating_in_group = false;
-// As is_creating used to not start new actions where the old one couldn't take place because of an error
+// As is_creating used to not start new actions where the old one couldn't take place because of an error. No need for is_moving in group because we can move only one tab at a time
 let is_moving = false;
-// To avoid moving tab from one window to another
-let stop_move = false;
-// Ame principle as is_moving
-let is_removing = false;
+// Used to recheck states and not to take wrong actions
+let is_recheck_move = false;
+let is_recheck_remove = false;
 // Amount of actions of move should be ignored because we were the cause oof them. Used to reduce amount of checks. Might be buggy when a lot of actions happen at the same time with other extensions
 let ignore_moved = 0;
 // As ignore_moved used to decrease amount of useless checks
 let ignore_removed = 0;
+
+// Used to detect change in group ids
+const last_check_group_ids = new Map();
 
 // Change active tab when active is changed
 chrome.tabs.onActivated.addListener((activeInfo) => {
@@ -24,6 +26,8 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 
 // Check if tab was removed
 chrome.tabs.onRemoved.addListener((tab_id, removeInfo) => {
+  last_check_group_ids.delete(tab_id);
+
   if(ignore_removed > 0)
   {
     ignore_removed--;
@@ -66,27 +70,26 @@ chrome.tabs.onCreated.addListener((tab) => {
 // Check if tab was attached
 chrome.tabs.onAttached.addListener((tab_id, attach_info) => {
   //console.log("Check attached");
-  Check(attach_info.newWindowId);
+  is_recheck_remove = true;
+  setTimeout(() =>  Check(attach_info.newWindowId), 100);
 });
 
 // Check if tab was detached
 chrome.tabs.onDetached.addListener((tab_id, detach_info) => {
   //console.log("Check detached");
   if(is_moving)
-    stop_move = true;
-  Check(detach_info.oldWindowId);
-});
-
-// Check if tab group was opened
-chrome.tabGroups.onUpdated.addListener((group) => {
-  //console.log("Group updateted");
+    is_recheck_move = true;
+  is_recheck_remove = true;
+  setTimeout(() =>  Check(detach_info.oldWindowId), 100);
 });
 
 // Update on extension load
 async function CheckCurrentWindow(){
   // Wrote this way because chrome API is very limiting when it comes to popups
   //console.log("Check current window")
-  Check((await chrome.tabs.query({active: true}))[0].windowId);
+  let window_id = (await chrome.tabs.query({active: true}))[0].windowId;
+  Check(window_id);
+  DetectGroupChange(window_id);
 }
 CheckCurrentWindow();
 
@@ -97,12 +100,14 @@ chrome.runtime.onMessage.addListener((request, sender, send_response) => {
     CheckCurrentWindow();
 });
 
-async function Check(win_id, removed_active){
-  if(!win_id)
+async function Check(window_id, removed_active){
+  is_recheck_remove = false;
+
+  if(!window_id)
     return;
 
   try {
-    await chrome.windows.get(win_id);
+    await chrome.windows.get(window_id);
   }
   catch(error) {
     return;
@@ -121,11 +126,11 @@ async function Check(win_id, removed_active){
     return;
 
   const move_right = storage_cache.move_dir == "right";
-  const goal_index = move_right ? ((await chrome.tabs.query({windowId: win_id})).length - 1) : ((await chrome.tabs.query({windowId: win_id, pinned: true})).length);
+  const goal_index = move_right ? ((await chrome.tabs.query({windowId: window_id})).length - 1) : ((await chrome.tabs.query({windowId: window_id, pinned: true})).length);
 
   // Normal check
   {
-    const tabs = await chrome.tabs.query({windowId: win_id, groupId: chrome.tabGroups.TAB_GROUP_ID_NONE});
+    const tabs = await chrome.tabs.query({windowId: window_id, groupId: chrome.tabGroups.TAB_GROUP_ID_NONE});
     
     let active_tab_index = tabs.findIndex((tab) => tab.active == true);
     if(active_tab_index != -1)
@@ -135,21 +140,21 @@ async function Check(win_id, removed_active){
 
     for(const tab of tabs){
       if((tab.url == NEW_TAB_URL || tab.pendingUrl == NEW_TAB_URL) && !tab.pinned){
-        if(storage_cache.close && found && !is_removing)
+        if(storage_cache.close && found)
         {
           await RemoveTab(tab);
           continue;
         }
         
         if(storage_cache.move && !found && tab.index != goal_index && !is_moving)
-          await MoveTab(tab, goal_index, win_id);
+          await MoveTab(tab, goal_index, window_id);
     
         found = true;
       }
     }
     
     if(!found && !is_creating){
-      await CreateNewTab(win_id, (new_tab) => {
+      await CreateNewTab(window_id, (new_tab) => {
         if(removed_active)
           chrome.tabs.update(new_tab.id, { active: true });
       });
@@ -160,7 +165,7 @@ async function Check(win_id, removed_active){
   // Group check
   if(storage_cache.group){
     for(const group of await chrome.tabGroups.query({})){
-      const tabs = await chrome.tabs.query({windowId: win_id, groupId: group.id});
+      const tabs = await chrome.tabs.query({windowId: window_id, groupId: group.id});
 
       if(tabs.length == 0)
         continue;
@@ -189,14 +194,14 @@ async function Check(win_id, removed_active){
       for(const tab of tabs){
 
         if(tab.url == NEW_TAB_URL || tab.pendingUrl == NEW_TAB_URL){
-          if(storage_cache.close && found && !is_removing)
+          if(storage_cache.close && found)
           {
             await RemoveTab(tab);
             continue;
           }
 
           if(storage_cache.move && !found && tab.index != group_goal_index)
-            await MoveTabInGroup(tab, group_goal_index, group.id, win_id);
+            await MoveTabInGroup(tab, group_goal_index, group.id, window_id);
           
           found = true;
         }
@@ -204,7 +209,7 @@ async function Check(win_id, removed_active){
 
       if(!found && !is_moving && !is_creating_in_group)
       {
-        await CreateNewTabInGroup(win_id, group.id, (new_tab) => {
+        await CreateNewTabInGroup(window_id, group.id, (new_tab) => {
           if(removed_active)
             chrome.tabs.update(new_tab.id, { active: true });
         });
@@ -214,9 +219,9 @@ async function Check(win_id, removed_active){
 }
 
 async function MoveTab(tab, goal_index, window_id){
-  if(stop_move)
+  if(is_recheck_move)
   {
-    stop_move = false;
+    is_recheck_move = false;
     is_moving = false; 
     return;
   }
@@ -236,9 +241,9 @@ async function MoveTab(tab, goal_index, window_id){
 }
 
 async function MoveTabInGroup(tab, group_goal_index, group_id, window_id){
-  if(stop_move)
+  if(is_recheck_move)
   {
-    stop_move = false;
+    is_recheck_move = false;
     is_moving = false; 
     return;
   }
@@ -261,7 +266,9 @@ async function MoveTabInGroup(tab, group_goal_index, group_id, window_id){
 async function RemoveTab(tab){
   //console.log("Remove tab");
 
-  is_removing = true;
+  // When we set is_recheck_remove to true next call to Check should and is called with delay of 100 ms
+  if(is_recheck_remove)
+    return;
 
   await chrome.tabs.remove(tab.id, () => {
     if(chrome.runtime.lastError){
@@ -270,7 +277,6 @@ async function RemoveTab(tab){
     }
   
     ignore_removed++;
-    is_removing = false;
   });
 }
 
@@ -317,4 +323,26 @@ async function CreateNewTabInGroup(window_id, group_id, callback)
 
     callback(new_tab);
   });
+}
+
+
+
+// Detect Group change
+async function DetectGroupChange(window_id)
+{
+  //console.log("Detect Group Change");
+
+  for(const tab of (await chrome.tabs.query({windowId: window_id})))
+  {
+    if(last_check_group_ids.has(tab.id) && tab.groupId != last_check_group_ids.get(tab.id) && !is_moving)
+    {
+      //console.log("Group Changed from ", last_check_group_ids.get(tab.id), " to ", tab.groupId);
+      is_recheck_remove = true;
+      setTimeout(() =>  Check(window_id), 100);
+    }
+
+    last_check_group_ids.set(tab.id, tab.groupId);
+  }
+
+  setTimeout(() => DetectGroupChange(window_id), 1000);
 }
