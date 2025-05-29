@@ -10,6 +10,8 @@ let is_creating_in_group = false;
 let is_moving = false;
 // To avoid moving tab from one window to another
 let stop_move = false;
+// Ame principle as is_moving
+let is_removing = false;
 // Amount of actions of move should be ignored because we were the cause oof them. Used to reduce amount of checks. Might be buggy when a lot of actions happen at the same time with other extensions
 let ignore_moved = 0;
 // As ignore_moved used to decrease amount of useless checks
@@ -133,10 +135,8 @@ async function Check(win_id, removed_active){
 
     for(const tab of tabs){
       if((tab.url == NEW_TAB_URL || tab.pendingUrl == NEW_TAB_URL) && !tab.pinned){
-        console.log("here");
-        if(storage_cache.close && found)
+        if(storage_cache.close && found && !is_removing)
         {
-          console.log("even here");
           await RemoveTab(tab);
           continue;
         }
@@ -189,7 +189,7 @@ async function Check(win_id, removed_active){
       for(const tab of tabs){
 
         if(tab.url == NEW_TAB_URL || tab.pendingUrl == NEW_TAB_URL){
-          if(storage_cache.close && found)
+          if(storage_cache.close && found && !is_removing)
           {
             await RemoveTab(tab);
             continue;
@@ -261,6 +261,8 @@ async function MoveTabInGroup(tab, group_goal_index, group_id, window_id){
 async function RemoveTab(tab){
   //console.log("Remove tab");
 
+  is_removing = true;
+
   await chrome.tabs.remove(tab.id, () => {
     if(chrome.runtime.lastError){
       setTimeout(() => RemoveTab(tab), 100);
@@ -268,6 +270,7 @@ async function RemoveTab(tab){
     }
   
     ignore_removed++;
+    is_removing = false;
   });
 }
 
